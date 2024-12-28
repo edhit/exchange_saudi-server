@@ -29,7 +29,7 @@ if (process.env.WEBHOOK === "") {
 
 const text = process.env.START
   ? process.env.START
-  : `✨ Ас-саляму ‘аляйкум ва рахмату-Ллахи ва баракяту\n\n🤖 Чтобы создать объявление, нажми на "Разместить", нажав на кнопку рядом с "Сообщение".`;
+  : `✨ Ас-саляму ‘аляйкум ва рахмату-Ллахи ва баракяту\n\n🤖 Чтобы создать объявление, нажми на "Разместить", нажав на кнопку рядом с "Сообщение". Чтобы посмотреть все объявления, нажми на "Все объявления"`;
 
 bot.start(async (ctx) => {
   try {
@@ -40,8 +40,8 @@ bot.start(async (ctx) => {
           inline_keyboard: [
             [
               {
-                text: "Биржа",
-                url: `https://t.me/${process.env.CHANNEL.replace("@", "")}`, // Укажите URL вашего WebApp
+                text: "Все объявления",
+                url: `https://t.me/${process.env.LINK}`, // Укажите URL вашего WebApp
               },
             ],
           ],
@@ -67,7 +67,7 @@ bot.action(/delete_(.+)/, async (ctx) => {
     const [messageId] = callbackData.split("_");
 
       await bot.telegram.editMessageText(
-        process.env.CHANNEL, // Либо ID канала
+        process.env.GROUP, // Либо ID канала
         messageId, // ID сообщения
         undefined, // inlineMessageId, если он не используется
         `${message}\n\n<b>⭕️ Объявление снято с публикации</b>`,
@@ -110,12 +110,12 @@ app.post("/api/sendMessage", async (req, res) => {
     `;
 
     let message_data = await bot.telegram.sendMessage(
-      process.env.CHANNEL, // ID канала
+      process.env.GROUP, // ID канала
       message,
       {
         ...Markup.inlineKeyboard([
           Markup.button.url(
-            "Написать автору",
+            `Написать сообщение`,
             `https://t.me/${req.body.user.username}`
           ),
         ]),
@@ -135,7 +135,7 @@ app.post("/api/sendMessage", async (req, res) => {
             ),
             Markup.button.url(
               "Посмотреть объявление",
-              `https://t.me/${process.env.CHANNEL}/${message_data.message_id}`
+              `https://t.me/${process.env.LINK}/${message_data.message_id}`
             ),
           ]),
           disable_web_page_preview: true, // Отключение превью ссылки

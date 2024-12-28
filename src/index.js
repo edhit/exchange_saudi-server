@@ -90,10 +90,10 @@ bot.action(/delete_(.+)/, async (ctx) => {
 
 app.post("/api/sendMessage", async (req, res) => {
   try {
-    const typeIcon = req.body.data.type === "Купить" ? "🟢" : "🔴";
+    const typeIcon = req.body.data.type === "Купить" ? "🟢 Покупка" : "🔴 Продажа";
 
     let message = `
-    ${typeIcon} Тип: ${req.body.data.type}
+    ${typeIcon}
     💱 Валюта продажи: ${req.body.data.sellCurrency}
     💰 Валюта покупки: ${req.body.data.buyCurrency}
     💵 Сумма: ${req.body.data.amount}

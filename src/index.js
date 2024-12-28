@@ -39,8 +39,8 @@ bot.start(async (ctx) => {
           inline_keyboard: [
             [
               {
-                text: "Cargo",
-                url: process.env.WEB_APP, // Укажите URL вашего WebApp
+                text: "Объявления",
+                url: `https://t.me/${process.env.CHANNEL}`, // Укажите URL вашего WebApp
               },
             ],
           ],

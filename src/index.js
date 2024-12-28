@@ -63,7 +63,7 @@ bot.start(async (ctx) => {
 bot.action(/delete_(.+)/, async (ctx) => {
   try {
     const callbackData = ctx.match[1]; // Получаем данные из группы (.+)
-    const message = ctx.callbackQuery.message; // Сообщение, связанное с callback
+    const message = ctx.callbackQuery.message.replace("#order", ""); // Сообщение, связанное с callback
     const [messageId] = callbackData.split("_");
 
       await bot.telegram.editMessageText(
@@ -106,6 +106,8 @@ app.post("/api/sendMessage", async (req, res) => {
     🔄 Способ обмена: ${req.body.data.exchange}
     🚚 Доставка: ${req.body.data.delivery}
     ${req.body.data.comment ? `📝 Комментарий: ${req.body.data.comment}` : ""}
+
+    #order #${req.body.data.sellCurrency}_${req.body.data.buyCurrency}
     `;
 
     let message_data = await bot.telegram.sendMessage(

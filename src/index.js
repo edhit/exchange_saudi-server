@@ -70,7 +70,7 @@ bot.action(/delete_(.+)/, async (ctx) => {
         process.env.CHANNEL, // Либо ID канала
         messageId, // ID сообщения
         undefined, // inlineMessageId, если он не используется
-        `<s>${message.text}</s>\n\n<b>⭕️ Объявление снято с публикации</b>`,
+        `${message.text}\n\n<b>⭕️ Объявление снято с публикации</b>`,
         {
           parse_mode: "HTML", // Указывает форматирование текста
           disable_web_page_preview: true, // Отключение превью ссылки
@@ -78,7 +78,7 @@ bot.action(/delete_(.+)/, async (ctx) => {
       );
 
       await ctx.editMessageText(
-        `<s>${message.text}</s>\n\n<b>⭕️ Объявление снято с публикации</b>`,
+        `${message.text}\n\n<b>⭕️ Объявление снято с публикации</b>`,
         {
           parse_mode: "HTML",
           disable_web_page_preview: true, // Отключение превью ссылки

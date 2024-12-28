@@ -63,15 +63,14 @@ bot.start(async (ctx) => {
 bot.action(/delete_(.+)/, async (ctx) => {
   try {
     const callbackData = ctx.match[1]; // Получаем данные из группы (.+)
+    const message = ctx.callbackQuery.message.text.replace("#order", ""); // Сообщение, связанное с callback
     const [messageId] = callbackData.split("_");
-    let message = ctx.callbackQuery.message // Сообщение, связанное с callback
-    message = message.replace("#order", "");
 
       await bot.telegram.editMessageText(
         process.env.CHANNEL, // Либо ID канала
         messageId, // ID сообщения
         undefined, // inlineMessageId, если он не используется
-        `${message.text}\n\n<b>⭕️ Объявление снято с публикации</b>`,
+        `${message}\n\n<b>⭕️ Объявление снято с публикации</b>`,
         {
           parse_mode: "HTML", // Указывает форматирование текста
           disable_web_page_preview: true, // Отключение превью ссылки
@@ -79,7 +78,7 @@ bot.action(/delete_(.+)/, async (ctx) => {
       );
 
       await ctx.editMessageText(
-        `${message.text}\n\n<b>⭕️ Объявление снято с публикации</b>`,
+        `${message}\n\n<b>⭕️ Объявление снято с публикации</b>`,
         {
           parse_mode: "HTML",
           disable_web_page_preview: true, // Отключение превью ссылки

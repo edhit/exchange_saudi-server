@@ -137,7 +137,7 @@ app.post("/api/sendMessage", async (req, res) => {
   } catch (error) {
     res.status(400).json({
       message: "Ошибка при создании записи",
-      error: err.message,
+      error: error.message,
     });
   }
 });

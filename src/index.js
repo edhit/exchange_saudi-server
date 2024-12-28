@@ -97,8 +97,8 @@ app.post("/api/sendMessage", async (req, res) => {
     const typeIcon = req.body.data.type === "Купить" ? "🟢 Покупка" : "🔴 Продажа";
 
     let message = `
-    ${typeIcon}
-    💱 Валюта продажи: ${req.body.data.sellCurrency}
+    💱 Обмен валюты
+    💸 Валюта продажи: ${req.body.data.sellCurrency}
     💰 Валюта покупки: ${req.body.data.buyCurrency}
     💵 Сумма: ${req.body.data.amount}
     📊 Курс: ${req.body.data.rate}

@@ -94,7 +94,7 @@ bot.action(/delete_(.+)/, async (ctx) => {
 
 app.post("/api/sendMessage", async (req, res) => {
   try {
-    const typeIcon = req.body.data.type === "Купить" ? "🟢 Покупка" : "🔴 Продажа";
+    // const typeIcon = req.body.data.type === "Купить" ? "🟢 Покупка" : "🔴 Продажа";
 
     let message = `
     💱 Обмен валюты
@@ -104,10 +104,11 @@ app.post("/api/sendMessage", async (req, res) => {
     📊 Курс: ${req.body.data.rate}
     🏙️ Город: ${req.body.data.city}
     🔄 Способ обмена: ${req.body.data.exchange}
-    🚚 Доставка: ${req.body.data.delivery}
     ${req.body.data.comment ? `📝 Комментарий: ${req.body.data.comment}` : ""}
 #order #${req.body.data.sellCurrency}_${req.body.data.buyCurrency}
     `;
+
+// 🚚 Доставка: ${req.body.data.delivery}
 
     let message_data = await bot.telegram.sendMessage(
       process.env.GROUP, // ID канала

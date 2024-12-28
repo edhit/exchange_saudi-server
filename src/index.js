@@ -34,19 +34,21 @@ const text = process.env.START
 bot.start(async (ctx) => {
   try {
     if (ctx.chat && ctx.chat.username) {
-      await ctx.reply(text, {
+      await ctx.unpinAllChatMessages();
+      const message_data = await ctx.reply(text, {
         reply_markup: {
           inline_keyboard: [
             [
               {
-                text: "Объявления",
-                url: `https://t.me/${process.env.CHANNEL}`, // Укажите URL вашего WebApp
+                text: "Биржа",
+                url: `https://t.me/${process.env.CHANNEL.replace("@", "")}`, // Укажите URL вашего WebApp
               },
             ],
           ],
         },
         disable_web_page_preview: true, // Отключение превью ссылки
       });
+      await ctx.pinChatMessage(message_data.message_id);
     } else {
       await ctx.reply(
         "السلام عليكم ورحمة الله وبركاته \n\n🛂 Чтобы начать использовать бота, пожалуйста, укажите имя пользователя в настройках Telegram. Перейдите в настройки Telegram, откройте раздел 'Изменить профиль' и добавьте ваше имя пользователя."
@@ -82,6 +84,8 @@ bot.action(/delete_(.+)/, async (ctx) => {
           disable_web_page_preview: true, // Отключение превью ссылки
         }
       );
+
+      await ctx.answerCbQuery('⭕️ Объявление снято с публикации')
   } catch (err) {
     console.error("Ошибка при удалении записи:", err);
     await ctx.reply("Произошла ошибка при удалении записи.");

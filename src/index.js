@@ -65,7 +65,7 @@ bot.action(/delete_(.+)/, async (ctx) => {
     const [messageId] = callbackData.split("_");
 
       await bot.telegram.editMessageText(
-        "@cargo_life", // Либо ID канала
+        process.env.CHANNEL, // Либо ID канала
         messageId, // ID сообщения
         undefined, // inlineMessageId, если он не используется
         `<s>${message.text}</s>\n\n<b>⭕️ Объявление снято с публикации</b>`,
@@ -100,7 +100,7 @@ app.post("/api/sendMessage", async (req, res) => {
 		  `;
 
     let message_data = await bot.telegram.sendMessage(
-      `@cargo_life`, // ID канала
+      process.env.CHANNEL, // ID канала
       message,
       {
         ...Markup.inlineKeyboard([
@@ -125,7 +125,7 @@ app.post("/api/sendMessage", async (req, res) => {
             ),
             Markup.button.url(
               "Посмотреть объявление",
-              `https://t.me/cargo_life/${message_data.message_id}`
+              `https://t.me/${process.env.CHANNEL}/${message_data.message_id}`
             ),
           ]),
           disable_web_page_preview: true, // Отключение превью ссылки

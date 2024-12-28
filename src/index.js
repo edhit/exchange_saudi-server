@@ -106,7 +106,7 @@ app.post("/api/sendMessage", async (req, res) => {
     🔄 Способ обмена: ${req.body.data.exchange}
     🚚 Доставка: ${req.body.data.delivery}
     ${req.body.data.comment ? `📝 Комментарий: ${req.body.data.comment}` : ""}
-  #order #${req.body.data.sellCurrency}_${req.body.data.buyCurrency}
+#order #${req.body.data.sellCurrency}_${req.body.data.buyCurrency}
     `;
 
     let message_data = await bot.telegram.sendMessage(

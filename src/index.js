@@ -90,14 +90,19 @@ bot.action(/delete_(.+)/, async (ctx) => {
 
 app.post("/api/sendMessage", async (req, res) => {
   try {
+    const typeIcon = req.body.data.type === "Купить" ? "🟢" : "🔴";
+
     let message = `
-	  📦 Груз: ${req.body.data.type}
-	  ⚖️ Вес: ${req.body.data.weight}
-	  💰 Цена за кг: ${req.body.data.price}
-	  📍 Откуда: ${req.body.data.from}
-	  📍 Куда: ${req.body.data.to}
-	  ${req.body.data.comment ? `📝 Комментарий: ${req.body.data.comment}` : ""}
-		  `;
+    ${typeIcon} Тип: ${req.body.data.type}
+    💱 Валюта продажи: ${req.body.data.sellCurrency}
+    💰 Валюта покупки: ${req.body.data.buyCurrency}
+    💵 Сумма: ${req.body.data.amount}
+    📊 Курс: ${req.body.data.rate}
+    🏙️ Город: ${req.body.data.city}
+    🔄 Способ обмена: ${req.body.data.exchange}
+    🚚 Доставка: ${req.body.data.delivery}
+    ${req.body.data.comment ? `📝 Комментарий: ${req.body.data.comment}` : ""}
+    `;
 
     let message_data = await bot.telegram.sendMessage(
       process.env.CHANNEL, // ID канала

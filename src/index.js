@@ -34,7 +34,7 @@ const text = process.env.START
 bot.start(async (ctx) => {
   try {
     if (ctx.chat && ctx.chat.username) {
-      await ctx.unpinAllChatMessages();
+      // await ctx.unpinAllChatMessages();
       const message_data = await ctx.reply(text, {
         // reply_markup: {
         //   inline_keyboard: [
@@ -48,7 +48,7 @@ bot.start(async (ctx) => {
         // },
         disable_web_page_preview: true, // Отключение превью ссылки
       });
-      await ctx.pinChatMessage(message_data.message_id);
+      // await ctx.pinChatMessage(message_data.message_id);
     } else {
       await ctx.reply(
         "✨ Ас-саляму ‘аляйкум ва рахмату-Ллахи ва баракяту\n\n🛂 Чтобы начать использовать бота, пожалуйста, укажите имя пользователя в настройках Telegram. Перейдите в настройки Telegram, откройте раздел 'Изменить профиль' и добавьте ваше имя пользователя."

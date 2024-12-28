@@ -29,23 +29,23 @@ if (process.env.WEBHOOK === "") {
 
 const text = process.env.START
   ? process.env.START
-  : `✨ Ас-саляму ‘аляйкум ва рахмату-Ллахи ва баракяту\n\n🤖 Чтобы создать объявление, нажми на "Разместить", нажав на кнопку рядом с "Сообщение". Чтобы посмотреть все объявления, нажми на "Все объявления"`;
+  : `✨ Ас-саляму ‘аляйкум ва рахмату-Ллахи ва баракяту\n\n🤖 Чтобы создать объявление, нажми на "Разместить", нажав на кнопку рядом с "Сообщение"`;
 
 bot.start(async (ctx) => {
   try {
     if (ctx.chat && ctx.chat.username) {
       await ctx.unpinAllChatMessages();
       const message_data = await ctx.reply(text, {
-        reply_markup: {
-          inline_keyboard: [
-            [
-              {
-                text: "Все объявления",
-                url: `https://t.me/${process.env.LINK}`, // Укажите URL вашего WebApp
-              },
-            ],
-          ],
-        },
+        // reply_markup: {
+        //   inline_keyboard: [
+        //     [
+        //       {
+        //         text: "Все объявления",
+        //         url: `https://t.me/${process.env.LINK}`, // Укажите URL вашего WebApp
+        //       },
+        //     ],
+        //   ],
+        // },
         disable_web_page_preview: true, // Отключение превью ссылки
       });
       await ctx.pinChatMessage(message_data.message_id);
@@ -104,10 +104,10 @@ app.post("/api/sendMessage", async (req, res) => {
     📊 Курс: ${req.body.data.rate}
     🏙️ Город: ${req.body.data.city}
     🔄 Способ обмена: ${req.body.data.exchange}
+    🚚 Доставка: ${req.body.data.delivery}
     ${req.body.data.comment ? `📝 Комментарий: ${req.body.data.comment}` : ""}
 #order #${req.body.data.sellCurrency}_${req.body.data.buyCurrency}
     `;
-    // 🚚 Доставка: ${req.body.data.delivery}
 
     let message_data = await bot.telegram.sendMessage(
       process.env.GROUP, // ID канала

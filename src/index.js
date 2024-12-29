@@ -106,8 +106,8 @@ app.post("/api/sendMessage", async (req, res) => {
 // 💱 Обмен валюты
     let message = `
     ${typeIcon}
-    💸 Валюта продажи: #SELL_${sell}
-    💰 Валюта покупки: #BUY_${buy}
+    💸 Валюта продажи:#SELL_${sell}
+    💰 Валюта покупки:#BUY_${buy}
     💵 Сумма: ${req.body.data.amount}
     📊 Курс: ${req.body.data.rate}
     🏙️ Город: ${req.body.data.city}

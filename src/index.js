@@ -94,26 +94,26 @@ bot.action(/delete_(.+)/, async (ctx) => {
 
 app.post("/api/sendMessage", async (req, res) => {
   try {
-    const typeIcon = req.body.data.type === "Купить" ? "🟢 Покупка" : "🔴 Продажа";
     let buy, sell;
     if (req.body.data.type === "Купить") {
-      sell = req.body.data.sellCurrency;
-      buy = req.body.data.buyCurrency;
+      sell = req.body.data.buyCurrency;
+      buy = req.body.data.sellCurrency;
     } else {
       sell = req.body.data.sellCurrency;
       buy = req.body.data.buyCurrency;
     }
+    const typeIcon = req.body.data.type === "Купить" ? `🟢 Покупка ${buy} за ${sell}` : `🔴 Продажа ${sell} за ${buy}`;
 // 💱 Обмен валюты
     let message = `
-    {typeIcon}
-    💸 Валюта продажи: ${req.body.data.sellCurrency}
-    💰 Валюта покупки: ${req.body.data.buyCurrency}
+    ${typeIcon}
+    💸 Валюта продажи: #SELL_${sell}
+    💰 Валюта покупки: #BUY_${buy}
     💵 Сумма: ${req.body.data.amount}
     📊 Курс: ${req.body.data.rate}
     🏙️ Город: ${req.body.data.city}
     🔄 Способ обмена: ${req.body.data.exchange}
     ${req.body.data.comment ? `📝 Комментарий: ${req.body.data.comment}` : ""}
-#order #${req.body.data.sellCurrency}_${req.body.data.buyCurrency}
+#order #${sell}_${buy}
     `;
 
 // 🚚 Доставка: ${req.body.data.delivery}

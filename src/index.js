@@ -17,11 +17,7 @@ app.use((req, res, next) => {
 
 // Получение переменных из .env
 const {
-  MONGO_ROOT_USERNAME,
-  MONGO_ROOT_PASSWORD,
-  MONGO_DB_NAME,
-  MONGO_HOST,
-  MONGO_PORT,
+  MONGODB_URL,
   WEBHOOK,
   BOT_TOKEN,
   SECRET,
@@ -31,12 +27,9 @@ const {
   GROUP
 } = process.env;
 
-// Строка подключения к MongoDB
-const mongoURI = `mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@${MONGO_HOST}:${MONGO_PORT}/${MONGO_DB_NAME}?authSource=admin`;
-
 // Подключение к MongoDB
 mongoose
-  .connect(mongoURI)
+  .connect(MONGODB_URL)
   .then(() => console.log('Connected to MongoDB'))
   .catch((err) => console.error('Error connecting to MongoDB:', err));
 

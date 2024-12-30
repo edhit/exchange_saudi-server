@@ -14,7 +14,7 @@ services:
     depends_on:
       - mongodb
     networks:
-      - app_network
+      - internal
 
   app:
     image: 'docker.io/jc21/nginx-proxy-manager:latest'
@@ -27,24 +27,24 @@ services:
       - ./data:/data
       - ./letsencrypt:/etc/letsencrypt
     networks:
-      - app_network
+      - internal
 
   mongodb:
-    image: 'mongo:latest'
     container_name: ${MONGO_HOST}
+    image: mongo
     restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${DATABASE_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${DATABASE_PASSWORD}
     ports:
       - "${MONGO_PORT}:${MONGO_PORT}"
     volumes:
       - mongodb_data:/data/db
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
     networks:
-      - app_network
+      - internal
 
 volumes:
   mongodb_data:
 
 networks:
-  app_network:
+  internal:

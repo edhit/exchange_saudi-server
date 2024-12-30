@@ -30,9 +30,12 @@ const limiter = rateLimit({
   message: 'Слишком много запросов, попробуйте позже.',
 });
 const speedLimiter = slowDown({
-  windowMs: 15 * 60 * 1000, // 15 минут
-  delayAfter: 50, // Замедление после 50 запросов
-  delayMs: 500, // Задержка в 500 мс на каждый дополнительный запрос
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  delayAfter: 100, // Allow 100 requests per 15 minutes
+  delayMs: (used, req) => {
+      const delayAfter = req.slowDown.limit;
+      return (used - delayAfter) * 500; // Increase delay for each request over limit
+  },
 });
 
 // app.use(cors({ origin: 'https://example.com' }));

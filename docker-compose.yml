@@ -33,9 +33,6 @@ services:
     container_name: ${MONGO_HOST}
     image: mongo
     restart: always
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: ${DATABASE_USERNAME}
-      MONGO_INITDB_ROOT_PASSWORD: ${DATABASE_PASSWORD}
     ports:
       - "${MONGO_PORT}:${MONGO_PORT}"
     volumes:

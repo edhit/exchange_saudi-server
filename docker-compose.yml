@@ -37,8 +37,9 @@ services:
       - "${MONGO_PORT}:${MONGO_PORT}"
     volumes:
       - mongodb_data:/data/db
-    env_file:
-      - .env
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
     networks:
       - app_network
 

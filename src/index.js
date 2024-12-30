@@ -33,9 +33,6 @@ const {
 
 // Строка подключения к MongoDB
 const mongoURI = `mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@${MONGO_HOST}:${MONGO_PORT}/${MONGO_DB_NAME}?authSource=admin`;
-console.log(MONGO_ROOT_USERNAME);
-console.log(MONGO_ROOT_PASSWORD);
-
 
 // Подключение к MongoDB
 mongoose

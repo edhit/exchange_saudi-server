@@ -2,9 +2,38 @@ require("dotenv").config();
 const { Telegraf, Markup } = require("telegraf");
 const mongoose = require('mongoose');
 const express = require("express");
+const cors = require('cors');
+const compression = require('compression');
+const helmet = require('helmet');
+const slowDown = require('express-slow-down');
+const morgan = require('morgan');
+const Redis = require('ioredis');
+
+const { 
+  MONGODB_URL,
+  WEBHOOK,
+  BOT_TOKEN,
+  SECRET,
+  START,
+  EXPRESS_PORT,
+  LINK,
+  GROUP,
+  REDIS_HOST,
+  REDIS_PORT
+} = process.env;
 
 const app = express();
+const speedLimiter = slowDown({
+  windowMs: 15 * 60 * 1000, // 15 минут
+  delayAfter: 50, // Замедление после 50 запросов
+  delayMs: 500, // Задержка в 500 мс на каждый дополнительный запрос
+});
+
+// app.use(cors({ origin: 'https://example.com' }));
 app.use(express.json());
+app.use(helmet());
+app.use(speedLimiter);
+app.use(morgan('combined'));
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*");
   res.header(
@@ -13,32 +42,41 @@ app.use((req, res, next) => {
   );
   next();
 });
-
-
-// Получение переменных из .env
-const {
-  MONGODB_URL,
-  WEBHOOK,
-  BOT_TOKEN,
-  SECRET,
-  START,
-  EXPRESS_PORT,
-  LINK,
-  GROUP
-} = process.env;
+app.use(
+  compression({
+    level: 6, // Уровень сжатия (0-9), 6 — оптимальный баланс между скоростью и сжатием
+    threshold: 1024, // Минимальный размер ответа для сжатия (1KB)
+    brotliEnabled: true,
+  })
+);
 
 // Подключение к MongoDB
-mongoose
+const db = mongoose
   .connect(MONGODB_URL)
   .then(() => console.log('Connected to MongoDB'))
   .catch((err) => console.error('Error connecting to MongoDB:', err));
 
+// Подключение к Redis
+const redis = new Redis({
+  host: REDIS_HOST,
+  port: REDIS_PORT,
+});
+
+redis.on('connect', () => {
+  console.log('Connected to Redis');
+});
+
+redis.on('error', (err) => {
+  console.error('Redis error:', err);
+});
+
+// Бот телеграм
 const bot = new Telegraf(BOT_TOKEN);
 
 const path_url = SECRET;
-if (WEBHOOK === "") {
+if (WEBHOOK === "") { // LONG POLLING
   bot.launch();
-} else {
+} else { // ПОДКЛЮЧЕНИЕ К WEBHOOK
   const webhookUrl = `${WEBHOOK}/${path_url}`;
   bot.telegram.setWebhook(webhookUrl);
 
@@ -47,12 +85,12 @@ if (WEBHOOK === "") {
   });
 }
 
-const text = START
-  ? START
-  : `✨ Ас-саляму ‘аляйкум ва рахмату-Ллахи ва баракяту\n\n💱 Чтобы посмотреть все объявления, нажми на "P2P", нажав на кнопку сверху. \n\n🤖 Чтобы создать объявление, нажми на "Разместить", нажав на кнопку рядом с "Сообщение".\n\nℹ️ О боте /help`;
-
 bot.start(async (ctx) => {
   try {
+    const text = START
+    ? START
+    : `✨ Ас-саляму ‘аляйкум ва рахмату-Ллахи ва баракяту\n\n💱 Чтобы посмотреть все объявления, нажми на "P2P", нажав на кнопку сверху. \n\n🤖 Чтобы создать объявление, нажми на "Разместить", нажав на кнопку рядом с "Сообщение".\n\nℹ️ О боте /help`;  
+
     if (ctx.chat && ctx.chat.username) {
       await ctx.unpinAllChatMessages();
       const message_data = await ctx.reply(text, {
@@ -154,6 +192,8 @@ bot.action(/delete_(.+)/, async (ctx) => {
   }
 });
 
+
+// CRUD
 app.post("/api/sendMessage", async (req, res) => {
   try {
     let buy, sell;
@@ -219,6 +259,73 @@ app.post("/api/sendMessage", async (req, res) => {
       message: "Ошибка при создании записи",
       error: error.message,
     });
+  }
+});
+
+app.get('/api/getOrders', async (req, res) => {
+  try {
+    const { 
+      from, 
+      to, 
+      minPrice, 
+      maxPrice, 
+      minWeight, 
+      maxWeight, 
+      sortBy, 
+      sortOrder, 
+      page = 1, 
+      limit = 10 
+    } = req.query;
+
+    // Формируем объект фильтра
+    const filter = {};
+
+    if (from) filter.from = from.trim();
+    if (to) filter.to = to.trim();
+
+    // Фильтрация по цене
+    if (minPrice || maxPrice) {
+      filter.price = {};
+      if (minPrice) filter.price.$gte = Number(minPrice); // Больше или равно
+      if (maxPrice) filter.price.$lte = Number(maxPrice); // Меньше или равно
+    }
+
+    // Фильтрация по весу
+    if (minWeight || maxWeight) {
+      filter.weight = {};
+      if (minWeight) filter.weight.$gte = Number(minWeight); // Больше или равно
+      if (maxWeight) filter.weight.$lte = Number(maxWeight); // Меньше или равно
+    }
+
+    // Настройка сортировки
+    let sort = {};
+    if (sortBy) {
+      const order = sortOrder === 'desc' ? -1 : 1; // По умолчанию сортируем по возрастанию
+      sort[sortBy] = order;
+    }
+
+    // Настройка пагинации
+    const pageNumber = Math.max(1, parseInt(page)); // Номер страницы, по умолчанию 1
+    const pageSize = Math.max(1, parseInt(limit)); // Размер страницы, по умолчанию 10
+    const skip = (pageNumber - 1) * pageSize;
+
+    // Выполняем запрос с фильтром, сортировкой и пагинацией
+    const cargos = await Cargo.find(filter)
+      .sort(sort)
+      .skip(skip)
+      .limit(pageSize);
+
+    // Подсчет общего количества записей
+    const totalCargos = await Cargo.countDocuments(filter);
+
+    res.json({
+      total: totalCargos, // Общее количество записей
+      page: pageNumber,   // Текущая страница
+      limit: pageSize,    // Количество записей на странице
+      cargos,             // Список записей
+    });
+  } catch (err) {
+    res.status(500).json({ message: 'Ошибка сервера', error: err.message });
   }
 });
 

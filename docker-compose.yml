@@ -40,8 +40,20 @@ services:
     networks:
       - internal
 
+  redis:
+    image: 'redis:latest'
+    container_name: redis_container
+    restart: always
+    ports:
+      - "6379:6379"
+    networks:
+      - app_network
+    volumes:
+      - redis_data:/data
+
 volumes:
   mongodb_data:
+  redis_data:
 
 networks:
   internal:

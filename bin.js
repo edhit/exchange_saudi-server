@@ -1,6 +1,6 @@
 require('dotenv').config()
 const express = require('express');
-const mongoose = require('mongoose');
+// const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const { Telegraf, Markup } = require('telegraf');
@@ -23,10 +23,10 @@ app.use((req, res, next) => {
   });
 
 // Подключение к MongoDB
-const mongoURI = process.env.MONGO_URI; // Укажите ваш URI
-mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => console.log('MongoDB подключен'))
-  .catch((err) => console.error('Ошибка подключения к MongoDB:', err));
+// const mongoURI = process.env.MONGO_URI; // Укажите ваш URI
+// mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
+//   .then(() => console.log('MongoDB подключен'))
+//   .catch((err) => console.error('Ошибка подключения к MongoDB:', err));
 
 // Схема и модель Mongoose
 const cargoSchema = new mongoose.Schema({

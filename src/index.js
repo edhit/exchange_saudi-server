@@ -41,7 +41,7 @@ const speedLimiter = slowDown({
 // app.use(cors({ origin: 'https://example.com' }));
 app.use(express.json());
 app.use(helmet());
-app.use(limiter);
+// app.use(limiter);
 app.use(speedLimiter);
 app.use(morgan('combined'));
 app.use((req, res, next) => {

@@ -13,13 +13,39 @@ app.use((req, res, next) => {
   next();
 });
 
-const bot = new Telegraf(process.env.BOT_TOKEN);
 
-const path_url = process.env.SECRET;
-if (process.env.WEBHOOK === "") {
+// Получение переменных из .env
+const {
+  MONGO_ROOT_USERNAME,
+  MONGO_ROOT_PASSWORD,
+  MONGO_DB_NAME,
+  MONGO_HOST,
+  MONGO_PORT,
+  WEBHOOK,
+  BOT_TOKEN,
+  SECRET,
+  START,
+  EXPRESS_PORT,
+  LINK,
+  GROUP
+} = process.env;
+
+// Строка подключения к MongoDB
+const mongoURI = `mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@${MONGO_HOST}:${MONGO_PORT}/${MONGO_DB_NAME}?authSource=admin`;
+
+// Подключение к MongoDB
+mongoose
+  .connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => console.log('Connected to MongoDB'))
+  .catch((err) => console.error('Error connecting to MongoDB:', err));
+
+const bot = new Telegraf(BOT_TOKEN);
+
+const path_url = SECRET;
+if (WEBHOOK === "") {
   bot.launch();
 } else {
-  const webhookUrl = `${process.env.WEBHOOK}/${path_url}`;
+  const webhookUrl = `${WEBHOOK}/${path_url}`;
   bot.telegram.setWebhook(webhookUrl);
 
   app.post(`/${path_url}`, (req, res) => {
@@ -27,8 +53,8 @@ if (process.env.WEBHOOK === "") {
   });
 }
 
-const text = process.env.START
-  ? process.env.START
+const text = START
+  ? START
   : `✨ Ас-саляму ‘аляйкум ва рахмату-Ллахи ва баракяту\n\n💱 Чтобы посмотреть все объявления, нажми на "P2P", нажав на кнопку сверху. \n\n🤖 Чтобы создать объявление, нажми на "Разместить", нажав на кнопку рядом с "Сообщение".\n\nℹ️ О боте /help`;
 
 bot.start(async (ctx) => {
@@ -41,7 +67,7 @@ bot.start(async (ctx) => {
              [
                {
                  text: "P2P",
-                 url: `https://t.me/${process.env.LINK}`, // Укажите URL вашего WebApp
+                 url: `https://t.me/${LINK}`, // Укажите URL вашего WebApp
                },
              ],
            ],
@@ -109,7 +135,7 @@ bot.action(/delete_(.+)/, async (ctx) => {
     const [messageId] = callbackData.split("_");
 
       await bot.telegram.editMessageText(
-        process.env.GROUP, // Либо ID канала
+        GROUP, // Либо ID канала
         messageId, // ID сообщения
         undefined, // inlineMessageId, если он не используется
         `${message}\n\n<b>⭕️ Объявление снято с публикации</b>`,
@@ -160,7 +186,7 @@ app.post("/api/sendMessage", async (req, res) => {
 // 🚚 Доставка: ${req.body.data.delivery}
 
     let message_data = await bot.telegram.sendMessage(
-      process.env.GROUP, // ID канала
+      GROUP, // ID канала
       message,
       {
         ...Markup.inlineKeyboard([
@@ -185,7 +211,7 @@ app.post("/api/sendMessage", async (req, res) => {
             ),
             Markup.button.url(
               "Посмотреть объявление",
-              `https://t.me/${process.env.LINK}/${message_data.message_id}`
+              `https://t.me/${LINK}/${message_data.message_id}`
             ),
           ]),
           disable_web_page_preview: true, // Отключение превью ссылки
@@ -202,7 +228,7 @@ app.post("/api/sendMessage", async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = EXPRESS_PORT || 3000;
 app.listen(PORT, () => {
   console.log(`listening on port ${PORT}`);
 });

@@ -148,14 +148,13 @@ app.post("/api/sendMessage", async (req, res) => {
 // 💱 Обмен валюты
     let message = `
     ${typeIcon}
-    💸 Валюта продажи:#SELL_${sell}
-    💰 Валюта покупки:#BUY_${buy}
-    💵 Сумма: ${req.body.data.amount}
-    📊 Курс: ${req.body.data.rate}
-    🏙️ Город: #${req.body.data.city.replace("-", "_")}
-    🔄 Способ обмена: ${req.body.data.exchange}
-    ${req.body.data.comment ? `📝 Комментарий: ${req.body.data.comment}` : ""}
-#order #${sell}_${buy}
+    ├ Валюта продажи: ${sell}
+    ├ Валюта покупки: ${buy}
+    ├ Сумма: ${req.body.data.amount}
+    ├ Курс: ${req.body.data.rate}
+    ├ Город: ${req.body.data.city}
+    ${req.body.data.comment ? `├: ${req.body.data.comment}` : "└"}Способ обмена: ${req.body.data.exchange}
+    ${req.body.data.comment ? `└ Комментарий: ${req.body.data.comment}` : ""}
     `;
 
 // 🚚 Доставка: ${req.body.data.delivery}
@@ -166,7 +165,7 @@ app.post("/api/sendMessage", async (req, res) => {
       {
         ...Markup.inlineKeyboard([
           Markup.button.url(
-            `Написать сообщение`,
+            `🟩 Написать сообщение 🟩`,
             `https://t.me/${req.body.user.username}`
           ),
         ]),

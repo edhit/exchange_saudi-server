@@ -212,6 +212,41 @@ bot.action(/delete_(.+)/, async (ctx) => {
     }
   });
 
+// Удалить запись по ID
+app.delete('/api/cargos/:id', async (req, res) => {
+  try {
+    const deletedCargo = await Cargo.findByIdAndDelete(req.params.id);
+    if (!deletedCargo) return res.status(404).json({ message: 'Запись не найдена' });
+
+    res.json({ message: 'Запись удалена', cargo: deletedCargo });
+  } catch (err) {
+    res.status(500).json({ message: 'Ошибка сервера', error: err.message });
+  }
+});
+
+// Запуск сервера
+const PORT = process.env.PORT ? process.env.PORT : 3000;
+app.listen(PORT, () => console.log(`Сервер запущен на порту ${PORT}`));
+bot.launch();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // Получить запись по ID
 // app.get('/api/cargos/:id', async (req, res) => {
 //   try {
@@ -241,20 +276,3 @@ bot.action(/delete_(.+)/, async (ctx) => {
 //     res.status(400).json({ message: 'Ошибка при обновлении записи', error: err.message });
 //   }
 // });
-
-// Удалить запись по ID
-app.delete('/api/cargos/:id', async (req, res) => {
-  try {
-    const deletedCargo = await Cargo.findByIdAndDelete(req.params.id);
-    if (!deletedCargo) return res.status(404).json({ message: 'Запись не найдена' });
-
-    res.json({ message: 'Запись удалена', cargo: deletedCargo });
-  } catch (err) {
-    res.status(500).json({ message: 'Ошибка сервера', error: err.message });
-  }
-});
-
-// Запуск сервера
-const PORT = process.env.PORT ? process.env.PORT : 3000;
-app.listen(PORT, () => console.log(`Сервер запущен на порту ${PORT}`));
-bot.launch();

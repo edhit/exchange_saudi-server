@@ -5,10 +5,12 @@ const express = require("express");
 // const cors = require('cors');
 const compression = require('compression');
 const helmet = require('helmet');
-// const rateLimit = require('express-rate-limit');
+const rateLimit = require('express-rate-limit');
 const slowDown = require('express-slow-down');
 const morgan = require('morgan');
 const Redis = require('ioredis');
+const CurrencyExchange = require("./models/orders");
+const User = require("./models/user");
 
 const { 
   MONGODB_URL,
@@ -24,11 +26,11 @@ const {
 } = process.env;
 
 const app = express();
-// const limiter = rateLimit({
-//   windowMs: 15 * 60 * 1000, // 15 минут
-//   max: 100, // Максимум 100 запросов с одного IP
-//   message: 'Слишком много запросов, попробуйте позже.',
-// });
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 минут
+  max: 100, // Максимум 100 запросов с одного IP
+  message: 'Слишком много запросов, попробуйте позже.',
+});
 const speedLimiter = slowDown({
   windowMs: 15 * 60 * 1000, // 15 minutes
   delayAfter: 100, // Allow 100 requests per 15 minutes
@@ -41,7 +43,7 @@ const speedLimiter = slowDown({
 // app.use(cors({ origin: 'https://example.com' }));
 app.use(express.json());
 app.use(helmet());
-// app.use(limiter);
+app.use(limiter);
 app.use(speedLimiter);
 app.use(morgan('combined'));
 app.use((req, res, next) => {
@@ -59,6 +61,10 @@ app.use(
     brotliEnabled: true,
   })
 );
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: 'Something went wrong!' });
+});
 
 // Подключение к MongoDB
 const db = mongoose
@@ -102,8 +108,19 @@ bot.start(async (ctx) => {
     : `✨ Ас-саляму ‘аляйкум ва рахмату-Ллахи ва баракяту\n\n💱 Чтобы посмотреть все объявления, нажми на "P2P", нажав на кнопку сверху. \n\n🤖 Чтобы создать объявление, нажми на "Разместить", нажав на кнопку рядом с "Сообщение".\n\nℹ️ О боте /help`;  
 
     if (ctx.chat && ctx.chat.username) {
-      await ctx.unpinAllChatMessages();
-      const message_data = await ctx.reply(text, {
+      const existingUser = await User.findOne({ id: ctx.chat.id });
+
+      if (!existingUser) {
+        // Если пользователя нет, создаем новую запись
+        const newUser = new User({
+          id: ctx.chat.id,
+          username: ctx.chat.username,
+        });
+
+        await newUser.save();
+      }
+
+      await ctx.reply(text, {
         reply_markup: {
            inline_keyboard: [
              [
@@ -116,7 +133,6 @@ bot.start(async (ctx) => {
          },
         disable_web_page_preview: true, // Отключение превью ссылки
       });
-      await ctx.pinChatMessage(message_data.message_id);
     } else {
       await ctx.reply(
         "✨ Ас-саляму ‘аляйкум ва рахмату-Ллахи ва баракяту\n\n🛂 Чтобы начать использовать бота, пожалуйста, укажите имя пользователя в настройках Telegram. Перейдите в настройки Telegram, откройте раздел 'Изменить профиль' и добавьте ваше имя пользователя."
@@ -202,7 +218,6 @@ bot.action(/delete_(.+)/, async (ctx) => {
   }
 });
 
-
 // CRUD
 app.post("/api/sendMessage", async (req, res) => {
   try {
@@ -272,72 +287,77 @@ app.post("/api/sendMessage", async (req, res) => {
   }
 });
 
+// READ с фильтрацией, сортировкой и пагинацией
 app.get('/api/getOrders', async (req, res) => {
   try {
-    const { 
-      from, 
-      to, 
-      minPrice, 
-      maxPrice, 
-      minWeight, 
-      maxWeight, 
-      sortBy, 
-      sortOrder, 
-      page = 1, 
-      limit = 10 
-    } = req.query;
-
-    // Формируем объект фильтра
     const filter = {};
 
-    if (from) filter.from = from.trim();
-    if (to) filter.to = to.trim();
+    // Фильтрация
+    if (req.query.transactionType) {
+      filter.transactionType = req.query.transactionType.trim();
+    }
+    if (req.query.currencyFrom) {
+      filter.currencyFrom = req.query.currencyFrom.trim();
+    }
+    if (req.query.currencyTo) {
+      filter.currencyTo = req.query.currencyTo.trim();
+    }
+    if (req.query.city) {
+      filter.city = req.query.city.trim();
+    }
+    if (req.query.exchangeMethod) {
+      filter.exchangeMethod = req.query.exchangeMethod.trim();
+    }
+    if (req.query.minAmount || req.query.maxAmount) {
+      const minAmount = req.query.minAmount ? Number(req.query.minAmount) : undefined;
+      const maxAmount = req.query.maxAmount ? Number(req.query.maxAmount) : undefined;
 
-    // Фильтрация по цене
-    if (minPrice || maxPrice) {
-      filter.price = {};
-      if (minPrice) filter.price.$gte = Number(minPrice); // Больше или равно
-      if (maxPrice) filter.price.$lte = Number(maxPrice); // Меньше или равно
+      if (isNaN(minAmount) && req.query.minAmount) {
+        return res.status(400).json({ error: 'Invalid minAmount value' });
+      }
+      if (isNaN(maxAmount) && req.query.maxAmount) {
+        return res.status(400).json({ error: 'Invalid maxAmount value' });
+      }
+
+      filter.amountFromCurrency = {};
+      if (minAmount !== undefined) filter.amountFromCurrency.$gte = minAmount;
+      if (maxAmount !== undefined) filter.amountFromCurrency.$lte = maxAmount;
     }
 
-    // Фильтрация по весу
-    if (minWeight || maxWeight) {
-      filter.weight = {};
-      if (minWeight) filter.weight.$gte = Number(minWeight); // Больше или равно
-      if (maxWeight) filter.weight.$lte = Number(maxWeight); // Меньше или равно
+    // Валидация и сортировка
+    const allowedSortFields = ['createdAt', 'amountFromCurrency', 'exchangeRate']; // Список допустимых полей
+    const sortBy = allowedSortFields.includes(req.query.sort) ? req.query.sort : 'createdAt';
+    const order = req.query.order === 'desc' ? -1 : 1;
+
+    // Пагинация
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    if (limit <= 0) {
+      return res.status(400).json({ error: 'Limit must be greater than 0' });
     }
 
-    // Настройка сортировки
-    let sort = {};
-    if (sortBy) {
-      const order = sortOrder === 'desc' ? -1 : 1; // По умолчанию сортируем по возрастанию
-      sort[sortBy] = order;
-    }
+    const skip = (page - 1) * limit;
 
-    // Настройка пагинации
-    const pageNumber = Math.max(1, parseInt(page)); // Номер страницы, по умолчанию 1
-    const pageSize = Math.max(1, parseInt(limit)); // Размер страницы, по умолчанию 10
-    const skip = (pageNumber - 1) * pageSize;
-
-    // Выполняем запрос с фильтром, сортировкой и пагинацией
-    const cargos = await Cargo.find(filter)
-      .sort(sort)
+    // Поиск с фильтром, сортировкой и пагинацией
+    const exchanges = await CurrencyExchange.find(filter)
+      .sort({ [sortBy]: order })
       .skip(skip)
-      .limit(pageSize);
+      .limit(limit);
 
-    // Подсчет общего количества записей
-    const totalCargos = await Cargo.countDocuments(filter);
+    // Общее количество записей
+    const total = await CurrencyExchange.countDocuments(filter);
 
-    res.json({
-      total: totalCargos, // Общее количество записей
-      page: pageNumber,   // Текущая страница
-      limit: pageSize,    // Количество записей на странице
-      cargos,             // Список записей
+    res.status(200).json({
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+      data: exchanges,
     });
   } catch (err) {
-    res.status(500).json({ message: 'Ошибка сервера', error: err.message });
+    res.status(500).json({ error: 'Failed to fetch exchanges', details: err.message });
   }
 });
+
 
 const PORT = EXPRESS_PORT || 3000;
 app.listen(PORT, () => {

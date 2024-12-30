@@ -2,10 +2,10 @@ require("dotenv").config();
 const { Telegraf, Markup } = require("telegraf");
 const mongoose = require('mongoose');
 const express = require("express");
-const cors = require('cors');
+// const cors = require('cors');
 const compression = require('compression');
 const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
+// const rateLimit = require('express-rate-limit');
 const slowDown = require('express-slow-down');
 const morgan = require('morgan');
 const Redis = require('ioredis');
@@ -24,11 +24,11 @@ const {
 } = process.env;
 
 const app = express();
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 минут
-  max: 100, // Максимум 100 запросов с одного IP
-  message: 'Слишком много запросов, попробуйте позже.',
-});
+// const limiter = rateLimit({
+//   windowMs: 15 * 60 * 1000, // 15 минут
+//   max: 100, // Максимум 100 запросов с одного IP
+//   message: 'Слишком много запросов, попробуйте позже.',
+// });
 const speedLimiter = slowDown({
   windowMs: 15 * 60 * 1000, // 15 minutes
   delayAfter: 100, // Allow 100 requests per 15 minutes

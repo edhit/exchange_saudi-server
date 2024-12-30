@@ -47,7 +47,7 @@ services:
     ports:
       - "${REDIS_PORT}:${REDIS_PORT}"
     networks:
-      - app_network
+      - internal
     volumes:
       - redis_data:/data
 

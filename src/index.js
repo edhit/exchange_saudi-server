@@ -5,6 +5,7 @@ const express = require("express");
 const cors = require('cors');
 const compression = require('compression');
 const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const slowDown = require('express-slow-down');
 const morgan = require('morgan');
 const Redis = require('ioredis');
@@ -23,6 +24,11 @@ const {
 } = process.env;
 
 const app = express();
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 минут
+  max: 100, // Максимум 100 запросов с одного IP
+  message: 'Слишком много запросов, попробуйте позже.',
+});
 const speedLimiter = slowDown({
   windowMs: 15 * 60 * 1000, // 15 минут
   delayAfter: 50, // Замедление после 50 запросов
@@ -32,6 +38,7 @@ const speedLimiter = slowDown({
 // app.use(cors({ origin: 'https://example.com' }));
 app.use(express.json());
 app.use(helmet());
+app.use(limiter);
 app.use(speedLimiter);
 app.use(morgan('combined'));
 app.use((req, res, next) => {

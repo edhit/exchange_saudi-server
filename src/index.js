@@ -32,7 +32,7 @@ const {
 } = process.env;
 
 // Строка подключения к MongoDB
-const mongoURI = MONGO_HOST;
+const mongoURI = `mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@${MONGO_HOST}:${MONGO_PORT}/${MONGO_DB_NAME}?authSource=admin`;
 
 // Подключение к MongoDB
 mongoose

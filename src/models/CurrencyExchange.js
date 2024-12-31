@@ -3,41 +3,43 @@ const mongoose = require('mongoose');
 const currencyExchangeSchema = new mongoose.Schema({
   transactionType: {
     type: String, // Array of strings
-    required: false,
+    required: true,
   },
   currencyFrom: {
     type: String, // Array of strings
-    required: false,
+    required: true,
   },
   amountFromCurrency: {
     type: Number,
-    required: false,
+    required: true,
   },
   currencyTo: {
-    type: String, // Array of strings
-    required: false,
+    type: String,
+    required: true,
   },
   exchangeRate: {
-    type: String, // Array of strings
-    required: false,
-  },
-  customExchangeRate: {
     type: Number,
-    required: false,
+    required: true,
   },
   city: {
-    type: String, // Array of strings
-    required: false,
+    type: String, 
+    required: true,
   },
   exchangeMethod: {
-    type: String, // Array of strings
-    required: false,
+    type: [String], 
+    required: true,
   },
   additionalComments: {
     type: String,
     required: false,
   },
-});
+  username: {
+    type: String,
+    required: true,
+  },
+},   {
+  timestamps: true,
+})
 
 // Export the model
 const CurrencyExchange = mongoose.model('CurrencyExchange', currencyExchangeSchema);

@@ -13,6 +13,8 @@ services:
       - "${EXPRESS_PORT}:${EXPRESS_PORT}"
     depends_on:
       - mongodb
+    volumes:
+      - ./logs:/usr/src/app/logs
     networks:
       - internal
 

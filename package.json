@@ -21,7 +21,8 @@
     "mongoose": "^8.9.2",
     "morgan": "^1.10.0",
     "nodemon": "2.0.3",
-    "telegraf": "^4.16.3"
+    "telegraf": "^4.16.3",
+    "winston": "^3.17.0"
   },
   "devDependencies": {
     "nodemon": "1.18.4"

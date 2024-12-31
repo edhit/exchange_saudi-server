@@ -1,51 +1,82 @@
 require("dotenv").config();
+const path = require("path");
 const { Telegraf, Markup } = require("telegraf");
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 const express = require("express");
-// const cors = require('cors');
-const compression = require('compression');
-const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
-const slowDown = require('express-slow-down');
-const morgan = require('morgan');
-const Redis = require('ioredis');
-const CurrencyExchange = require("./models/orders");
+const cors = require('cors');
+// const morgan = require('morgan');
+const compression = require("compression");
+const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
+const slowDown = require("express-slow-down");
+const Redis = require("ioredis");
+const winston = require("winston");
+const CurrencyExchange = require("./models/CurrencyExchange");
 const User = require("./models/user");
 
-const { 
+const {
   MONGODB_URL,
   WEBHOOK,
   BOT_TOKEN,
   SECRET,
   START,
   EXPRESS_PORT,
-  LINK,
-  GROUP,
   REDIS_HOST,
-  REDIS_PORT
+  REDIS_PORT,
+  CORS
 } = process.env;
+
+const logger = winston.createLogger({
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.json()
+  ),
+  transports: [
+    new winston.transports.Console({ level: "debug" }), // Логирование в консоль
+    new winston.transports.File({
+      filename: path.join(__dirname, "logs", "error.log"),
+      level: "error",
+    }), // Логи ошибок
+    new winston.transports.File({
+      filename: path.join(__dirname, "logs", "combined.log"),
+    }), // Общие логи
+  ],
+});
 
 const app = express();
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 минут
   max: 100, // Максимум 100 запросов с одного IP
-  message: 'Слишком много запросов, попробуйте позже.',
+  message: "Слишком много запросов, попробуйте позже.",
 });
 const speedLimiter = slowDown({
   windowMs: 15 * 60 * 1000, // 15 minutes
   delayAfter: 100, // Allow 100 requests per 15 minutes
   delayMs: (used, req) => {
-      const delayAfter = req.slowDown.limit;
-      return (used - delayAfter) * 500; // Increase delay for each request over limit
+    const delayAfter = req.slowDown.limit;
+    return (used - delayAfter) * 500; // Increase delay for each request over limit
   },
 });
-
-// app.use(cors({ origin: 'https://example.com' }));
+const allowedOrigins = [
+  CORS
+];
+app.use(cors({
+  origin: function(origin, callback) {
+    // Разрешаем доступ только с указанных доменов
+    if (allowedOrigins.includes(origin) || !origin) {
+      callback(null, true);  // Разрешаем запрос
+    } else {
+      callback(new Error('Not allowed by CORS'));  // Отказываем в доступе
+    }
+  },
+  methods: ['GET', 'POST'],  // Разрешаем только определенные методы
+}));
+// app.use(morgan('combined'));
+app.set("trust proxy", 1);
 app.use(express.json());
 app.use(helmet());
 app.use(limiter);
 app.use(speedLimiter);
-app.use(morgan('combined'));
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*");
   res.header(
@@ -61,16 +92,17 @@ app.use(
     brotliEnabled: true,
   })
 );
+
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Something went wrong!' });
+  logger.error(`Error: ${err.message}`);
+  res.status(500).json({ error: "Something went wrong!" });
 });
 
 // Подключение к MongoDB
 const db = mongoose
   .connect(MONGODB_URL)
-  .then(() => console.log('Connected to MongoDB'))
-  .catch((err) => console.error('Error connecting to MongoDB:', err));
+  .then(() => logger.info("Connected to MongoDB"))
+  .catch((err) => logger.error("Error connecting to MongoDB:", err));
 
 // Подключение к Redis
 const redis = new Redis({
@@ -78,21 +110,23 @@ const redis = new Redis({
   port: REDIS_PORT,
 });
 
-redis.on('connect', () => {
-  console.log('Connected to Redis');
+redis.on("connect", () => {
+  logger.info("Connected to Redis");
 });
 
-redis.on('error', (err) => {
-  console.error('Redis error:', err);
+redis.on("error", (err) => {
+  logger.error("Redis error:", err);
 });
 
 // Бот телеграм
 const bot = new Telegraf(BOT_TOKEN);
 
 const path_url = SECRET;
-if (WEBHOOK === "") { // LONG POLLING
+if (WEBHOOK === "") {
+  // LONG POLLING
   bot.launch();
-} else { // ПОДКЛЮЧЕНИЕ К WEBHOOK
+} else {
+  // ПОДКЛЮЧЕНИЕ К WEBHOOK
   const webhookUrl = `${WEBHOOK}/${path_url}`;
   bot.telegram.setWebhook(webhookUrl);
 
@@ -103,9 +137,10 @@ if (WEBHOOK === "") { // LONG POLLING
 
 bot.start(async (ctx) => {
   try {
+    logger.error("dads");
     const text = START
-    ? START
-    : `✨ Ас-саляму ‘аляйкум ва рахмату-Ллахи ва баракяту\n\n💱 Чтобы посмотреть все объявления, нажми на "P2P", нажав на кнопку сверху. \n\n🤖 Чтобы создать объявление, нажми на "Разместить", нажав на кнопку рядом с "Сообщение".\n\nℹ️ О боте /help`;  
+      ? START
+      : `✨ Ас-саляму ‘аляйкум ва рахмату-Ллахи ва баракяту\n\n💱 Чтобы посмотреть все объявления, нажми на "P2P", нажав на кнопку сверху. \n\n🤖 Чтобы создать объявление, нажми на "Разместить", нажав на кнопку рядом с "Сообщение".\n\nℹ️ О боте /help`;
 
     if (ctx.chat && ctx.chat.username) {
       const existingUser = await User.findOne({ id: ctx.chat.id });
@@ -121,16 +156,16 @@ bot.start(async (ctx) => {
       }
 
       await ctx.reply(text, {
-        reply_markup: {
-           inline_keyboard: [
-             [
-               {
-                 text: "P2P",
-                 url: `https://t.me/${LINK}`, // Укажите URL вашего WebApp
-               },
-             ],
-           ],
-         },
+        // reply_markup: {
+        //    inline_keyboard: [
+        //      [
+        //        {
+        //          text: "P2P",
+        //          url: `https://t.me/${LINK}`, // Укажите URL вашего WebApp
+        //        },
+        //      ],
+        //    ],
+        //  },
         disable_web_page_preview: true, // Отключение превью ссылки
       });
     } else {
@@ -139,7 +174,7 @@ bot.start(async (ctx) => {
       );
     }
   } catch (err) {
-    console.error("Ошибка при запуске:", err);
+    logger.error("Ошибка при запуске:", err);
     await ctx.reply("Произошла ошибка при запуске." + err);
   }
 });
@@ -179,9 +214,9 @@ bot.help(async (ctx) => {
 • 🔍 Прозрачность: четкое отображение условий сделки, комментариев и способов оплаты.
 • ⚡ Быстрая связь: мгновенный переход в Telegram-чат с пользователем.
 • 🧮 Калькулятор валют: рассчет всех актуальных валют в одном месте.
-      `)
+      `);
   } catch (err) {
-    console.error("Ошибка при запуске:", err);
+    logger.error("Ошибка при запуске:", err);
     await ctx.reply("Произошла ошибка при запуске." + err);
   }
 });
@@ -189,107 +224,119 @@ bot.help(async (ctx) => {
 bot.action(/delete_(.+)/, async (ctx) => {
   try {
     const callbackData = ctx.match[1]; // Получаем данные из группы (.+)
-    const message = ctx.callbackQuery.message.text.replace("#order", ""); // Сообщение, связанное с callback
-    const [messageId] = callbackData.split("_");
+    const message = ctx.callbackQuery.message.text; // Сообщение, связанное с callback
+    const [id] = callbackData.split("_");
 
-      await bot.telegram.editMessageText(
-        GROUP, // Либо ID канала
-        messageId, // ID сообщения
-        undefined, // inlineMessageId, если он не используется
-        `${message}\n\n<b>⭕️ Объявление снято с публикации</b>`,
-        {
-          parse_mode: "HTML", // Указывает форматирование текста
-          disable_web_page_preview: true, // Отключение превью ссылки
-        }
-      );
+    await CurrencyExchange.findByIdAndDelete(id);
 
-      await ctx.editMessageText(
-        `${message}\n\n<b>⭕️ Объявление снято с публикации</b>`,
-        {
-          parse_mode: "HTML",
-          disable_web_page_preview: true, // Отключение превью ссылки
-        }
-      );
+    await ctx.editMessageText(
+      `${message}\n\n<b>⭕️ Объявление снято с публикации</b>`,
+      {
+        parse_mode: "HTML",
+        disable_web_page_preview: true, // Отключение превью ссылки
+      }
+    );
 
-      await ctx.answerCbQuery('⭕️ Объявление снято с публикации')
+    await ctx.answerCbQuery("⭕️ Объявление снято с публикации");
   } catch (err) {
-    console.error("Ошибка при удалении записи:", err);
-    await ctx.reply("Произошла ошибка при удалении записи.");
+    logger.error("Ошибка при удалении записи:", err);
+    await ctx.answerCbQuery("Произошла ошибка при удалении записи.");
   }
 });
 
 // CRUD
 app.post("/api/sendMessage", async (req, res) => {
   try {
+    const {
+      type,
+      sellCurrency,
+      buyCurrency,
+      amount,
+      rate,
+      city,
+      exchange,
+      comment,
+    } = req.body.data;
+
+    const { id, username } = req.body.user;
+
     let buy, sell;
-    if (req.body.data.type === "Купить") {
-      sell = req.body.data.buyCurrency;
-      buy = req.body.data.sellCurrency;
+    if (type === "Купить") {
+      sell = buyCurrency;
+      buy = sellCurrency;
     } else {
-      sell = req.body.data.sellCurrency;
-      buy = req.body.data.buyCurrency;
+      sell = sellCurrency;
+      buy = buyCurrency;
     }
-    const typeIcon = req.body.data.type === "Купить" ? `🟢 Покупка ${buy} за ${sell}` : `🔴 Продажа ${sell} за ${buy}`;
-// 💱 Обмен валюты
+    const typeIcon =
+      type === "Купить"
+        ? `🟢 Покупка ${buy} за ${sell}`
+        : `🔴 Продажа ${sell} за ${buy}`;
+    // 💱 Обмен валюты
     let message = `
     ${typeIcon}
     ├ Валюта продажи: ${sell}
     ├ Валюта покупки: ${buy}
-    ├ Сумма: ${req.body.data.amount}
-    ├ Курс: ${req.body.data.rate}
-    ├ Город: ${req.body.data.city}
-    ${req.body.data.comment ? `├: ${req.body.data.comment}` : "└"}Способ обмена: ${req.body.data.exchange}
-    ${req.body.data.comment ? `└ Комментарий: ${req.body.data.comment}` : ""}
+    ├ Сумма: ${amount} ${sellCurrency}
+    ├ Курс: ${rate}
+    ├ Город: ${city}
+    ${comment ? `├: ${comment}` : "└"}Способ обмена: ${exchange}
+    ${comment ? `└ Комментарий: ${comment}` : ""}
     `;
+    
+    
+    // Создаём документ для сохранения в MongoDB
+    const newExchange = new CurrencyExchange({
+      transactionType: type || "", // Тип транзакции (например, обмен)
+      currencyFrom: sellCurrency || "", // Валюта продажи
+      amountFromCurrency: amount || 0, // Сумма
+      currencyTo: buyCurrency || "", // Валюта покупки
+      exchangeRate: rate || "", // Курс обмена
+      city: city || "", // Город
+      exchangeMethod: exchange || "", // Способ обмена
+      additionalComments: comment || "", // Комментарии
+      username: username || "",
+    });
 
-// 🚚 Доставка: ${req.body.data.delivery}
+    // Сохраняем данные в базе
+    const order = await newExchange.save();
 
-    let message_data = await bot.telegram.sendMessage(
-      GROUP, // ID канала
+    await bot.telegram.sendMessage(
+      req.body.user.chatId, // ID пользователя
       message,
       {
         ...Markup.inlineKeyboard([
-          Markup.button.url(
-            `🟩 Написать сообщение 🟩`,
-            `https://t.me/${req.body.user.username}`
+          Markup.button.callback(
+            "🛑 Снять с публикации",
+            `delete_${order._id}`
           ),
         ]),
         disable_web_page_preview: true, // Отключение превью ссылки
       }
     );
 
-    if (message_data) {
-      await bot.telegram.sendMessage(
-        req.body.user.chatId, // ID пользователя
-        message,
-        {
-          ...Markup.inlineKeyboard([
-            Markup.button.callback(
-              "🛑 Снять с публикации",
-              `delete_${message_data.message_id}`
-            ),
-            Markup.button.url(
-              "Посмотреть объявление",
-              `https://t.me/${LINK}/${message_data.message_id}`
-            ),
-          ]),
-          disable_web_page_preview: true, // Отключение превью ссылки
-        }
-      );
-    }
-
     res.send(message);
-  } catch (error) {
+  } catch (err) {
+    logger.error("Ошибка при создании записи:", err);
     res.status(400).json({
       message: "Ошибка при создании записи",
-      error: error.message,
+      error: err.message,
     });
   }
 });
 
 // READ с фильтрацией, сортировкой и пагинацией
-app.get('/api/getOrders', async (req, res) => {
+app.get("/api/getOrders", async (req, res) => {
   try {
+    const { currencyFrom, currencyTo, city, transactionType } = req.query;
+
+    if (!currencyFrom || !currencyTo || !city || !transactionType) {
+      return res.status(400).json({
+        message: "Require: currencyFrom, currencyTo, city, transactionType.",
+        data: [],
+      });
+    }
+
     const filter = {};
 
     // Фильтрация
@@ -309,14 +356,18 @@ app.get('/api/getOrders', async (req, res) => {
       filter.exchangeMethod = req.query.exchangeMethod.trim();
     }
     if (req.query.minAmount || req.query.maxAmount) {
-      const minAmount = req.query.minAmount ? Number(req.query.minAmount) : undefined;
-      const maxAmount = req.query.maxAmount ? Number(req.query.maxAmount) : undefined;
+      const minAmount = req.query.minAmount
+        ? Number(req.query.minAmount)
+        : undefined;
+      const maxAmount = req.query.maxAmount
+        ? Number(req.query.maxAmount)
+        : undefined;
 
       if (isNaN(minAmount) && req.query.minAmount) {
-        return res.status(400).json({ error: 'Invalid minAmount value' });
+        return res.status(400).json({ error: "Invalid minAmount value" });
       }
       if (isNaN(maxAmount) && req.query.maxAmount) {
-        return res.status(400).json({ error: 'Invalid maxAmount value' });
+        return res.status(400).json({ error: "Invalid maxAmount value" });
       }
 
       filter.amountFromCurrency = {};
@@ -325,15 +376,21 @@ app.get('/api/getOrders', async (req, res) => {
     }
 
     // Валидация и сортировка
-    const allowedSortFields = ['createdAt', 'amountFromCurrency', 'exchangeRate']; // Список допустимых полей
-    const sortBy = allowedSortFields.includes(req.query.sort) ? req.query.sort : 'createdAt';
-    const order = req.query.order === 'desc' ? -1 : 1;
+    const allowedSortFields = [
+      "createdAt",
+      "amountFromCurrency",
+      "exchangeRate",
+    ]; // Список допустимых полей
+    const sortBy = allowedSortFields.includes(req.query.sort)
+      ? req.query.sort
+      : "createdAt";
+    const order = req.query.order === "desc" ? -1 : 1;
 
     // Пагинация
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     if (limit <= 0) {
-      return res.status(400).json({ error: 'Limit must be greater than 0' });
+      return res.status(400).json({ error: "Limit must be greater than 0" });
     }
 
     const skip = (page - 1) * limit;
@@ -354,12 +411,14 @@ app.get('/api/getOrders', async (req, res) => {
       data: exchanges,
     });
   } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch exchanges', details: err.message });
+    logger.error("Ошибка при получении записей:", err);
+    res
+      .status(500)
+      .json({ error: "Ошибка при получении записей", details: err.message });
   }
 });
 
-
 const PORT = EXPRESS_PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`listening on port ${PORT}`);
+  logger.info(`listening on port ${PORT}`);
 });

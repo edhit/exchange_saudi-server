@@ -92,6 +92,20 @@ update_project() {
     echo "Проект успешно обновлен."
 }
 
+# Функция для обновления проекта без git pull
+update_local() {
+    echo "Перезапуск контейнеров..."
+    docker-compose down &>> "$LOG_FILE" || {
+        echo "Не удалось остановить контейнеры. Подробности см. в $LOG_FILE"
+        exit 1
+    }
+    docker-compose up --build -d &>> "$LOG_FILE" || {
+        echo "Не удалось перезапустить контейнеры. Подробности см. в $LOG_FILE"
+        exit 1
+    }
+    echo "Проект успешно обновлен."
+}
+
 # Функция для вывода состояния контейнеров
 show_status() {
     echo "Состояние контейнеров:"
@@ -118,6 +132,10 @@ case $1 in
         echo "Выбрана команда: Обновление"
         update_project
         ;;
+    restart)
+        echo "Выбрана команда: Перезапуск контейнеров"
+        update_local
+        ;;
     status)
         echo "Выбрана команда: Статус"
         show_status
@@ -130,6 +148,7 @@ case $1 in
         echo "Использование: $0 [init|update|status|stop]"
         echo "  init    - Инициализировать проект с нуля"
         echo "  update  - Обновить проект (pull и перезапуск)"
+        echo "  restart  - Перезапустить контейнер"
         echo "  status  - Показать состояние контейнеров"
         echo "  stop    - Остановить все контейнеры"
         exit 1
